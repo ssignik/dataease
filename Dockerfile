@@ -1,5 +1,22 @@
+FROM openeuler/openeuler:22.03-lts-sp1 as BUILDER
+
+RUN yum -y update && yum -y install wget rpm \
+    && wget https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.rpm \
+    && rpm -ivh jdk-21_linux-x64_bin.rpm \
+    && wget https://repo.huaweicloud.com/apache/maven/maven-3/3.8.1/binaries/apache-maven-3.8.1-bin.tar.gz \
+    && tar -zxvf apache-maven-3.8.1-bin.tar.gz
+
+COPY . /opt/dataease
+
+ENV MAVEN_HOME=/apache-maven-3.8.1
+ENV PATH=${MAVEN_HOME}/bin:$PATH
+
+RUN cd /opt/dataease && mvn clean install \
+    && cd core && mvn clean package -Pstandalone -U -Dmaven.test.skip=true
+
 FROM registry.cn-qingdao.aliyuncs.com/dataease/alpine-openjdk21-jre
 STOPSIGNAL SIGTERM
+
 RUN mkdir -p /opt/apps/config \
     /opt/dataease2.0/drivers/ \
     /opt/dataease2.0/cache/ \
@@ -16,7 +33,7 @@ ADD staticResource/ /opt/dataease2.0/data/static-resource/
 
 WORKDIR /opt/apps
 
-ADD core/core-backend/target/CoreApplication.jar /opt/apps/app.jar
+COPY --from=Builder /opt/dataease/core/core-backend/target/CoreApplication.jar ${WORKSPACE}/app.jar
 
 ENV JAVA_APP_JAR=/opt/apps/app.jar
 ENV RUNNING_PORT=8100
