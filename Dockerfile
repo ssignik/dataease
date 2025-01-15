@@ -1,18 +1,38 @@
-FROM openeuler/openeuler:22.03-lts-sp1 as BUILDER
+FROM centos:7.9.2009 as BUILDER
 
-RUN yum -y update && yum -y install wget rpm \
+RUN cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
+
+COPY CentOS-Base.repo /etc/yum.repos.d
+
+RUN yum clean all && yum makecache
+
+RUN yum -y update && yum -y install wget \
     && wget https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.rpm \
-    && rpm -ivh jdk-21_linux-x64_bin.rpm \
-    && wget https://repo.huaweicloud.com/apache/maven/maven-3/3.8.1/binaries/apache-maven-3.8.1-bin.tar.gz \
-    && tar -zxvf apache-maven-3.8.1-bin.tar.gz
+    && yum -y install jdk-21_linux-x64_bin.rpm
+
+RUN yum install -y git
+
+RUN wget https://dlcdn.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz \
+    && tar zxvf apache-maven-3.9.6-bin.tar.gz \
+    && mv apache-maven-3.9.6 /opt \
+    && rm -f apache-maven-3.9.6-bin.tar.gz
+
+ENV M2_HOME=/opt/apache-maven-3.9.6
+ENV PATH=$PATH:$M2_HOME/bin
+
+RUN wget https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz \
+    && tar xvf node-v16.15.0-linux-x64.tar.xz \
+    && mv node-v16.15.0-linux-x64 /opt \
+    && rm -f node-v16.15.0-linux-x64.tar.xz
+
+ENV NODE_HOME=/opt/node-v16.15.0-linux-x64
+ENV PATH=$PATH:$NODE_HOME/bin
 
 COPY . /opt/dataease
 
-ENV MAVEN_HOME=/apache-maven-3.8.1
-ENV PATH=${MAVEN_HOME}/bin:$PATH
+RUN cd /opt/dataease && ls && mvn clean install
 
-RUN cd /opt/dataease && mvn clean install \
-    && cd core && mvn clean package -Pstandalone -U -Dmaven.test.skip=true
+RUN cd /opt/dataease/core && mvn clean package -Pstandalone -U -Dmaven.test.skip=true
 
 FROM registry.cn-qingdao.aliyuncs.com/dataease/alpine-openjdk21-jre
 STOPSIGNAL SIGTERM
@@ -33,7 +53,9 @@ ADD staticResource/ /opt/dataease2.0/data/static-resource/
 
 WORKDIR /opt/apps
 
-COPY --from=Builder /opt/dataease/core/core-backend/target/CoreApplication.jar ${WORKSPACE}/app.jar
+COPY --from=Builder /opt/dataease/core/core-backend/target/CoreApplication.jar /opt/apps/app.jar
+RUN ls
+RUN cd /opt/apps && ls
 
 ENV JAVA_APP_JAR=/opt/apps/app.jar
 ENV RUNNING_PORT=8100
