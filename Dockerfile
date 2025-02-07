@@ -40,8 +40,7 @@ STOPSIGNAL SIGTERM
 RUN apk update && apk add --no-cache \
     shadow \
     util-linux \
-    bash && \
-    ln -s /bin/false /sbin/nologin
+    bash
 
 RUN groupadd -g 1000 dataease \
     && useradd -u 1000 -g dataease -s /bin/bash -m dataease \
