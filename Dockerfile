@@ -43,7 +43,7 @@ RUN apk update && apk add --no-cache \
     bash
 
 RUN groupadd -g 1000 dataease \
-    && useradd -u 1000 -g dataease -s /bin/bash -m dataease \
+    && useradd -u 1000 -g dataease -s /bin/bash -m dataease
 
 RUN mkdir -p /opt/apps/config \
     /opt/dataease2.0/drivers/ \
