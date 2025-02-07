@@ -37,6 +37,9 @@ RUN cd /opt/dataease/core && mvn clean package -Pstandalone -U -Dmaven.test.skip
 FROM registry.cn-qingdao.aliyuncs.com/dataease/alpine-openjdk21-jre
 STOPSIGNAL SIGTERM
 
+RUN yum update -y \
+    && yum install -y shadow passwd
+
 RUN groupadd -g 1000 dataease \
     && useradd -u 1000 -g dataease -s /bin/bash -m dataease \
 
